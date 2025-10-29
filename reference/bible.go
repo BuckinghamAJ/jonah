@@ -8,12 +8,47 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	drcBible "github.com/BuckinghamAJ/jonah/drcBible/dto"
 )
 
 type BibleReference struct {
+	Passages []*BiblePassage
+}
+
+func NewBibleReference() *BibleReference {
+	return &BibleReference{
+		Passages: []*BiblePassage{},
+	}
+}
+
+func (br *BibleReference) ExtractBiblePassages(input []string) error {
+	for _, v := range input {
+		passage, err := ExtractPassageInfo(v)
+		if err != nil {
+			return err
+		}
+		br.Passages = append(br.Passages, passage)
+	}
+
+	return nil
+}
+
+func (br *BibleReference) LoadAllText(ctx context.Context, queries *drcBible.Queries) {
+	var wg sync.WaitGroup
+	for i := range br.Passages {
+		wg.Add(1)
+		go func(p *BiblePassage) {
+			defer wg.Done()
+			p.GetFullText(ctx, queries)
+		}(br.Passages[i])
+	}
+	wg.Wait()
+}
+
+type BiblePassage struct {
 	Book       string
 	BookId     *int64
 	Chapter    uint8
@@ -22,39 +57,37 @@ type BibleReference struct {
 	Text       string
 }
 
-func (br *BibleReference) getBookId(ctx context.Context, queries *drcBible.Queries) int {
+func (bp *BiblePassage) getBookId(ctx context.Context, queries *drcBible.Queries) int {
 
-	book, err := queries.GetBookFromTitle(ctx, sql.NullString{String: br.Book, Valid: true})
+	book, err := queries.GetBookFromTitle(ctx, sql.NullString{String: bp.Book, Valid: true})
 
 	if err != nil {
-		log.Fatal("Could not find Bible Book: " + br.Book)
+		log.Fatal("Could not find Bible Book: " + bp.Book)
 	}
 
-	br.BookId = &book.ID
+	bp.BookId = &book.ID
 
 	return int(book.ID)
 }
 
-func (br *BibleReference) GetFullText(ctx context.Context) string {
-	var app = *internal.App
-	queries := app.Queries
+func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queries) string {
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	var bookID int
 
-	if br.BookId == nil {
-		bookID = br.getBookId(ctxWithTimeout, queries)
+	if bp.BookId == nil {
+		bookID = bp.getBookId(ctxWithTimeout, queries)
 	} else {
-		bookID = int(*br.BookId)
+		bookID = int(*bp.BookId)
 	}
 
 	queryParams := drcBible.GetVersesParams{
 		BookID:     sql.NullInt64{Int64: int64(bookID), Valid: true},
-		Chapter:    sql.NullInt64{Int64: int64(br.Chapter), Valid: true},
-		StartVerse: sql.NullInt64{Int64: int64(br.StartVerse), Valid: true},
-		EndVerse:   sql.NullInt64{Int64: int64(br.EndVerse), Valid: true},
+		Chapter:    sql.NullInt64{Int64: int64(bp.Chapter), Valid: true},
+		StartVerse: sql.NullInt64{Int64: int64(bp.StartVerse), Valid: true},
+		EndVerse:   sql.NullInt64{Int64: int64(bp.EndVerse), Valid: true},
 	}
 
 	// fmt.Println(queryParams)
@@ -65,16 +98,16 @@ func (br *BibleReference) GetFullText(ctx context.Context) string {
 		log.Fatal("Error Grabbing Verses: " + err.Error())
 	}
 
-	br.Text = formattingVerses(verses, br)
+	bp.Text = formattingVerses(verses, bp)
 
-	return br.Text
+	return bp.Text
 }
 
-func formattingVerses(Rows []drcBible.GetVersesRow, br *BibleReference) string {
+func formattingVerses(Rows []drcBible.GetVersesRow, bp *BiblePassage) string {
 	tmpVerses := []string{}
 
 	tmpVerses = append(tmpVerses,
-		fmt.Sprintf("# %s %d:%d-%d", br.Book, br.Chapter, br.StartVerse, br.EndVerse))
+		fmt.Sprintf("# %s %d:%d-%d", bp.Book, bp.Chapter, bp.StartVerse, bp.EndVerse))
 
 	for _, verseRow := range Rows {
 		tmpVerses = append(tmpVerses,
@@ -84,8 +117,8 @@ func formattingVerses(Rows []drcBible.GetVersesRow, br *BibleReference) string {
 	return strings.Join(tmpVerses, "\n")
 }
 
-func NewBibleReference(book string, chapter uint8, startVerse uint8, endVerse uint8) *BibleReference {
-	return &BibleReference{
+func NewBiblePassage(book string, chapter uint8, startVerse uint8, endVerse uint8) *BiblePassage {
+	return &BiblePassage{
 		Book:       book,
 		Chapter:    chapter,
 		StartVerse: startVerse,
@@ -93,21 +126,16 @@ func NewBibleReference(book string, chapter uint8, startVerse uint8, endVerse ui
 	}
 }
 
-func ParseInputVerses(args []string) (*BibleReference, error) {
-	fmt.Printf("Args: %v\n", args)
-	if len(args) == 0 {
-		return johnBibleReferece()
-	}
-
-	firstArg := args[0]
+func ExtractPassageInfo(passage string) (*BiblePassage, error) {
+	fmt.Printf("passage: %v\n", passage)
 
 	pattern := `^\s*(?P<book>(?:\d+\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*)\s*(?P<chapter>\d+)\s*:\s*(?P<startVerse>\d+)(?:\s*-\s*(?P<endVerse>\d+))?\s*$`
 
 	re := regexp.MustCompile(pattern)
-	matches := re.FindStringSubmatch(firstArg)
+	matches := re.FindStringSubmatch(passage)
 
 	if len(matches) <= 3 {
-		return nil, fmt.Errorf("invalid bible reference format: %s", firstArg)
+		return nil, fmt.Errorf("invalid bible reference format: %s", passage)
 	}
 
 	book := matches[1]
@@ -130,18 +158,5 @@ func ParseInputVerses(args []string) (*BibleReference, error) {
 		endVerse = startVerse
 	}
 
-	return NewBibleReference(book, uint8(chapter), uint8(startVerse), uint8(endVerse)), nil
-}
-
-func ParseSingleInputVerses(verse string) (*BibleReference, error) {
-	passThroughVerse := []string{verse}
-	return ParseInputVerses(passThroughVerse)
-}
-
-func johnBibleReferece() (*BibleReference, error) {
-	testBook := "John"
-	testChapter := uint8(1)
-	testVerseStart := uint8(1)
-	testVerseEnd := uint8(18)
-	return NewBibleReference(testBook, testChapter, testVerseStart, testVerseEnd), nil
+	return NewBiblePassage(book, uint8(chapter), uint8(startVerse), uint8(endVerse)), nil
 }

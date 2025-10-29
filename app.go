@@ -3,11 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	drcBible "github.com/BuckinghamAJ/jonah/drcBible/dto"
+	"github.com/BuckinghamAJ/jonah/reference"
 )
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx     context.Context
+	Queries *drcBible.Queries
 }
 
 // NewApp creates a new App application struct
@@ -41,4 +46,20 @@ func (a *App) shutdown(ctx context.Context) {
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+func (a *App) SearchVerse(passages string) (*reference.BibleReference, error) {
+	passageSplit := strings.Split(strings.TrimSpace(passages), ";")
+	bibleRef := reference.NewBibleReference()
+
+	err := bibleRef.ExtractBiblePassages(passageSplit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bibleRef.LoadAllText(a.ctx, a.Queries)
+
+	return bibleRef, nil
+
 }

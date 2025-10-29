@@ -1,6 +1,6 @@
 export default function Navbar() {
   return (
-    <header class="border-y bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+    <header class="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 -mt-3">
       <nav class="container mx-auto px-4 py-4 flex items-center justify-between mt-4">
         <div class="flex items-center gap-2">
           <h1 class="text-2xl font-bold text-amber-50">Jonah</h1>
