@@ -45,6 +45,14 @@ func main() {
 		OnBeforeClose:     app.beforeClose,
 		OnShutdown:        app.shutdown,
 		WindowStartState:  options.Normal,
+		// The Bind option is one of the most important options in a Wails application.
+		// It specifies which struct methods to expose to the frontend.
+		// Think of structs like "controllers" in a traditional web application.
+		// When the application starts, it examines the struct instances listed in
+		// the Bind field in the options, determines which methods are public
+		// (starts with an uppercase letter) and
+		// will generate JavaScript versions of those methods that
+		// can be called by the frontend code.
 		Bind: []interface{}{
 			app,
 		},
