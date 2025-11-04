@@ -2,7 +2,11 @@ import { For } from "solid-js";
 import { reference } from "../../wailsjs/go/models";
 import VerseDisplay from "./VerseDisplay";
 
-export default function Verses(props) {
+interface VerseProps {
+  data: reference.BibleReference;
+}
+
+export default function Verses(props: VerseProps) {
   return (
     <>
       <For each={props.data.Passages}>

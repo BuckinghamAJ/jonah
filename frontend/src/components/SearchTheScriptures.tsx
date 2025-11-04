@@ -1,4 +1,12 @@
-export default function SearchTheScriptures() {
+import { Setter, createSignal } from "solid-js";
+
+interface StSProps {
+  setPassages: Setter<string | null | undefined>;
+}
+
+export default function SearchTheScriptures(props: StSProps) {
+  const [value, setValue] = createSignal("");
+
   return (
     <div class="text-purple-300 justify-center mt-4 container mx-auto px-4 py-12 max-w-3xl">
       <div class="text-center">
@@ -25,10 +33,16 @@ export default function SearchTheScriptures() {
           <input
             class="block min-w-0 grow bg-gray-800 py-1.5 pr-3 text-base text-white placeholder:text-gray-500 focus:outline-none sm:text-sm/6 pl-3"
             placeholder="Search verses (e.g. John 3:16; Psalm 23:1-6)"
+            value={value()}
+            onInput={(e) => setValue(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === "Enter" && props.setPassages(value())}
             required
           ></input>
 
-          <button class="px-5 bg-gray-800 outline-1 outline-gray-500 rounded-md block py-1.5 justify-center hover:bg-gray-600 hover:cursor-pointer hover:font-semibold transition-colors">
+          <button
+            onClick={() => props.setPassages(value())}
+            class="px-5 bg-gray-800 outline-1 outline-gray-500 rounded-md block py-1.5 justify-center hover:bg-gray-600 hover:cursor-pointer hover:font-semibold transition-colors"
+          >
             Search
           </button>
         </div>

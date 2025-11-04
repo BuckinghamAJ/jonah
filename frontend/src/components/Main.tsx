@@ -20,9 +20,9 @@ export default function Main() {
   return (
     <>
       <VerseOfDay />
-      <SearchTheScriptures />
-      <Show when={verseResults()}>
-        <Verses data={verseResults()} />
+      <SearchTheScriptures setPassages={setPassages} />
+      <Show when={verseResults()} fallback={null}>
+        {(data) => <Verses data={data()} />}
       </Show>
     </>
   );
