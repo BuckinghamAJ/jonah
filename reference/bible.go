@@ -3,7 +3,7 @@ package reference
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
 	"sync"
 	"time"
 
@@ -46,17 +46,17 @@ type Verse struct {
 	Text   string
 }
 
-func (bp *BiblePassage) getBookId(ctx context.Context, queries *drcBible.Queries) int {
+func (bp *BiblePassage) getBookId(ctx context.Context, queries *drcBible.Queries) (int, error) {
 
 	book, err := queries.GetBookFromTitle(ctx, sql.NullString{String: bp.Book, Valid: true})
 
 	if err != nil {
-		log.Fatal("Could not find Bible Book: " + bp.Book)
+		return 0, fmt.Errorf("Could not find Bible Book: %s", bp.Book)
 	}
 
 	bp.BookId = &book.ID
 
-	return int(book.ID)
+	return int(book.ID), nil
 }
 
 func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queries) []Verse {
@@ -65,15 +65,19 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 	defer cancel()
 
 	var bookID int
+	var verses any
+	var err error
 
 	if bp.BookId == nil {
-		bookID = bp.getBookId(ctxWithTimeout, queries)
+		bookID, err = bp.getBookId(ctxWithTimeout, queries)
 	} else {
 		bookID = int(*bp.BookId)
 	}
 
-	var verses any
-	var err error
+	if err != nil {
+		fmt.Println("Error in GetFullText:", err)
+		return make([]Verse, 0)
+	}
 
 	if bp.StartVerse == 0 {
 		queryParams := drcBible.MakeChapterParams(bookID, bp.Chapter)
@@ -84,7 +88,8 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 	}
 
 	if err != nil {
-		log.Fatal("Error Grabbing Verses: " + err.Error())
+		fmt.Println("Error in GetFullText:", err)
+		return make([]Verse, 0)
 	}
 
 	bp.FullText = formattingVerses(verses)
