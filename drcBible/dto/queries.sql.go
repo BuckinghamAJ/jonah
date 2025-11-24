@@ -41,9 +41,30 @@ WHERE v.book_id = ? and v.chapter = ?
 ORDER BY v.verse
 `
 
+type BibleQuery interface {
+	GetBookID() sql.NullInt64
+	GetChapter() sql.NullInt64
+}
+
+type BibleRows interface {
+	GetChapter() sql.NullInt64
+	GetVerse() sql.NullInt64
+	GetText() sql.NullString
+}
+
 type GetChapterParams struct {
 	BookID  sql.NullInt64
 	Chapter sql.NullInt64
+}
+
+func (p GetChapterParams) GetBookID() sql.NullInt64  { return p.BookID }
+func (p GetChapterParams) GetChapter() sql.NullInt64 { return p.Chapter }
+
+func MakeChapterParams(bookID int, chapter uint8) GetChapterParams {
+	return GetChapterParams{
+		BookID:  sql.NullInt64{Int64: int64(bookID), Valid: true},
+		Chapter: sql.NullInt64{Int64: int64(chapter), Valid: true},
+	}
 }
 
 type GetChapterRow struct {
@@ -51,6 +72,10 @@ type GetChapterRow struct {
 	Verse   sql.NullInt64
 	Text    sql.NullString
 }
+
+func (p GetChapterRow) GetChapter() sql.NullInt64 { return p.Chapter }
+func (p GetChapterRow) GetVerse() sql.NullInt64   { return p.Verse }
+func (p GetChapterRow) GetText() sql.NullString   { return p.Text }
 
 func (q *Queries) GetChapter(ctx context.Context, arg GetChapterParams) ([]GetChapterRow, error) {
 	rows, err := q.db.QueryContext(ctx, getChapter, arg.BookID, arg.Chapter)
@@ -89,11 +114,27 @@ type GetVersesParams struct {
 	EndVerse   sql.NullInt64
 }
 
+func (p GetVersesParams) GetBookID() sql.NullInt64  { return p.BookID }
+func (p GetVersesParams) GetChapter() sql.NullInt64 { return p.Chapter }
+
+func MakeVerseParams(bookID int, chapter uint8, startVerse uint8, endVerse uint8) GetVersesParams {
+	return GetVersesParams{
+		BookID:     sql.NullInt64{Int64: int64(bookID), Valid: true},
+		Chapter:    sql.NullInt64{Int64: int64(chapter), Valid: true},
+		StartVerse: sql.NullInt64{Int64: int64(startVerse), Valid: true},
+		EndVerse:   sql.NullInt64{Int64: int64(endVerse), Valid: true},
+	}
+}
+
 type GetVersesRow struct {
 	Chapter sql.NullInt64
 	Verse   sql.NullInt64
 	Text    sql.NullString
 }
+
+func (p GetVersesRow) GetChapter() sql.NullInt64 { return p.Chapter }
+func (p GetVersesRow) GetVerse() sql.NullInt64   { return p.Verse }
+func (p GetVersesRow) GetText() sql.NullString   { return p.Text }
 
 func (q *Queries) GetVerses(ctx context.Context, arg GetVersesParams) ([]GetVersesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getVerses, arg.BookID, arg.Chapter, arg.StartVerse, arg.EndVerse)

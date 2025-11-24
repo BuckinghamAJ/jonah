@@ -4,6 +4,7 @@ go 1.24.6
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/prataprc/goparsec v0.0.0-20211219142520-daac0e635e7e
 	github.com/wailsapp/wails/v2 v2.10.2
 )
 

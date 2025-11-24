@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
 
 	drcBible "github.com/BuckinghamAJ/jonah/drcBible/dto"
+	"github.com/BuckinghamAJ/jonah/parser"
 	"github.com/BuckinghamAJ/jonah/reference"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -76,22 +76,10 @@ func (a *App) Greet(name string) string {
 }
 
 func (a *App) SearchVerse(passages string) (*reference.BibleReference, error) {
-	passageSplit := strings.Split(strings.TrimSpace(passages), ";")
-	bibleRef := reference.NewBibleReference()
-
-	err := bibleRef.ExtractBiblePassages(passageSplit)
-
-	fmt.Printf("Debug bibleRef: %+v\n", bibleRef)
-	for i, passage := range bibleRef.Passages {
-		fmt.Printf("Passage %d: %+v\n", i, passage)
-	}
-
-	if err != nil {
-		return nil, err
-	}
+	bibleRef := parser.BiblePassageParser(passages)
 
 	bibleRef.LoadAllText(a.ctx, a.Queries)
 
-	return bibleRef, nil
+	return &bibleRef, nil
 
 }
