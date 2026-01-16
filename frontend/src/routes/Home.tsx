@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import Main from "../components/Main";
 
 const Home: Component = () => {
-
+  // Testing
   return (
     <div class="min-h-screen bg-gray-900 text-white">
       <Navbar />
