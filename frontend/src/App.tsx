@@ -3,20 +3,16 @@ import { Greet } from "../wailsjs/go/main/App";
 
 import logo from "./logo.svg";
 import styles from "./App.module.css";
-import Navbar from "./components/Navbar";
-import { createResource } from "solid-js";
-import Footer from "./components/Footer";
-import Main from "./components/Main";
-
+import { HashRouter, Route } from "@solidjs/router";
+import Home from "./routes/Home"
 const App: Component = () => {
-  const [greetAdam] = createResource(() => Greet("Adam"));
 
   return (
-    <div class="min-h-screen">
-      <Navbar />
-      <Main />
-      <Footer />
-    </div>
+    <HashRouter root={Home}>
+      <Route path="/" component={Home} />
+
+    </HashRouter>
+
   );
 };
 

@@ -7,6 +7,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
@@ -83,6 +84,15 @@ func main() {
 				Message: "",
 				Icon:    icon,
 			},
+		},
+		Linux: &linux.Options{
+			Icon:                icon,
+			WindowIsTranslucent: true,
+			WebviewGpuPolicy:    linux.WebviewGpuPolicyAlways,
+			ProgramName:         "wails",
+		},
+		Debug: options.Debug{
+			OpenInspectorOnStartup: false,
 		},
 	})
 
