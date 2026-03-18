@@ -30,7 +30,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
-#
+.opencode/
+.zed/
+
 # Node modules
 node_modules/
 .pnpm-store/
@@ -67,4 +69,3 @@ coverage/
 
 # SolidStart specific
 .solid-start/
-.opencode/
