@@ -4,7 +4,7 @@ interface StSProps {
   setPassages: Setter<string | null | undefined>;
 }
 
-export default function SearchTheScriptures(props: StSProps) {
+export default function SearchTheScriptures({ setPassages }: StSProps) {
   const [value, setValue] = createSignal("");
 
   return (
@@ -35,12 +35,12 @@ export default function SearchTheScriptures(props: StSProps) {
             placeholder="Search verses (e.g. John 3:16; Psalm 23:1-6)"
             value={value()}
             onInput={(e) => setValue(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && props.setPassages(value())}
+            onKeyDown={(e) => e.key === "Enter" && setPassages(value())}
             required
           ></input>
 
           <button
-            onClick={() => props.setPassages(value())}
+            onClick={() => setPassages(value())}
             class="px-5 bg-gray-800 outline-1 outline-gray-500 rounded-md block py-1.5 justify-center hover:bg-gray-600 hover:cursor-pointer hover:font-semibold transition-colors"
           >
             Search

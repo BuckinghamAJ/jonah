@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,10 +16,15 @@ type BibleReference struct {
 	Passages []*BiblePassage
 }
 
-func NewBibleReference() *BibleReference {
-	return &BibleReference{
-		Passages: []*BiblePassage{},
+func (br *BibleReference) ToString() string {
+	var sb strings.Builder
+	for i, passage := range br.Passages {
+		if i > 0 {
+			sb.WriteString("; ")
+		}
+		sb.WriteString(passage.ToString())
 	}
+	return sb.String()
 }
 
 func (br *BibleReference) LoadAllText(ctx context.Context, queries *drcBible.Queries) {
@@ -30,6 +37,8 @@ func (br *BibleReference) LoadAllText(ctx context.Context, queries *drcBible.Que
 		}(br.Passages[i])
 	}
 	wg.Wait()
+
+	log.Println(br.Passages)
 }
 
 type BiblePassage struct {
@@ -39,6 +48,16 @@ type BiblePassage struct {
 	StartVerse uint8
 	EndVerse   uint8
 	FullText   []Verse
+}
+
+func (bp *BiblePassage) ToString() string {
+	if bp.StartVerse == 0 && bp.EndVerse == 0 {
+		return fmt.Sprintf("%s %d", bp.Book, bp.Chapter)
+	}
+	if bp.EndVerse == 0 || bp.EndVerse == bp.StartVerse {
+		return fmt.Sprintf("%s %d:%d", bp.Book, bp.Chapter, bp.StartVerse)
+	}
+	return fmt.Sprintf("%s %d:%d-%d", bp.Book, bp.Chapter, bp.StartVerse, bp.EndVerse)
 }
 
 type Verse struct {
@@ -65,7 +84,6 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 	defer cancel()
 
 	var bookID int
-	var verses any
 	var err error
 
 	if bp.BookId == nil {
@@ -75,65 +93,39 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 	}
 
 	if err != nil {
-		fmt.Println("Error in GetFullText:", err)
+		log.Println("error in GetFullText:", err)
 		return make([]Verse, 0)
 	}
 
 	if bp.StartVerse == 0 {
 		queryParams := drcBible.MakeChapterParams(bookID, bp.Chapter)
-		verses, err = queries.GetChapter(ctxWithTimeout, queryParams)
+		rows, err := queries.GetChapter(ctxWithTimeout, queryParams)
+		if err != nil {
+			log.Println("error in GetFullText:", err)
+			return make([]Verse, 0)
+		}
+		bp.FullText = formatRows(rows)
 	} else {
 		queryParams := drcBible.MakeVerseParams(bookID, bp.Chapter, bp.StartVerse, bp.EndVerse)
-		verses, err = queries.GetVerses(ctxWithTimeout, queryParams)
+		rows, err := queries.GetVerses(ctxWithTimeout, queryParams)
+		if err != nil {
+			log.Println("error in GetFullText:", err)
+			return make([]Verse, 0)
+		}
+		bp.FullText = formatRows(rows)
 	}
 
-	if err != nil {
-		fmt.Println("Error in GetFullText:", err)
-		return make([]Verse, 0)
-	}
-
-	bp.FullText = formattingVerses(verses)
 	return bp.FullText
 }
 
-func formattingVerses(verses any) []Verse {
-	switch v := verses.(type) {
-	case []drcBible.GetChapterRow:
-		return formatChapterRows(v)
-	case []drcBible.GetVersesRow:
-		return formatVerseRows(v)
-	default:
-		return nil
+// formatRows converts a slice of BibleRows-compatible types to []Verse.
+func formatRows[T drcBible.BibleRows](rows []T) []Verse {
+	verses := make([]Verse, 0, len(rows))
+	for _, r := range rows {
+		verses = append(verses, Verse{
+			Number: r.GetVerse().Int64,
+			Text:   r.GetText().String,
+		})
 	}
-}
-
-func formatChapterRows(Rows []drcBible.GetChapterRow) []Verse {
-	tmpVerses := []Verse{}
-
-	for _, verseRow := range Rows {
-		tmpVerses = append(tmpVerses,
-			Verse{verseRow.Verse.Int64, verseRow.Text.String})
-	}
-
-	return tmpVerses
-}
-
-func formatVerseRows(Rows []drcBible.GetVersesRow) []Verse {
-	tmpVerses := []Verse{}
-
-	for _, verseRow := range Rows {
-		tmpVerses = append(tmpVerses,
-			Verse{verseRow.Verse.Int64, verseRow.Text.String})
-	}
-
-	return tmpVerses
-}
-
-func NewBiblePassage(book string, chapter uint8, startVerse uint8, endVerse uint8) *BiblePassage {
-	return &BiblePassage{
-		Book:       book,
-		Chapter:    chapter,
-		StartVerse: startVerse,
-		EndVerse:   endVerse,
-	}
+	return verses
 }

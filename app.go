@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"log"
 	"os"
 
 	drcBible "github.com/BuckinghamAJ/jonah/drcBible/dto"
@@ -15,7 +15,7 @@ import (
 // App struct
 type App struct {
 	ctx     context.Context
-	Queries *drcBible.Queries
+	queries *drcBible.Queries
 	db      *sql.DB
 }
 
@@ -31,25 +31,23 @@ func (a *App) startup(ctx context.Context) {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	dbPath := cwd + "/data/DRC.db"
 
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		fmt.Println("Unable to connect to Database: " + err.Error())
-		os.Exit(1)
+		log.Fatal("unable to connect to database: ", err)
 	}
 	a.db = db
 
-	a.Queries = drcBible.New(db)
+	a.queries = drcBible.New(db)
 
 }
 
 // domReady is called after front-end resources have been loaded
-func (a App) domReady(ctx context.Context) {
+func (a *App) domReady(ctx context.Context) {
 	// Add your action here
 }
 
@@ -62,23 +60,15 @@ func (a *App) beforeClose(ctx context.Context) (prevent bool) {
 
 // shutdown is called at application termination
 func (a *App) shutdown(ctx context.Context) {
-	// Perform your teardown here
-	err := a.db.Close()
-	if err != nil {
-		fmt.Println("Unable to close Database")
-		os.Exit(1)
+	if err := a.db.Close(); err != nil {
+		log.Println("unable to close database:", err)
 	}
-}
-
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 
 func (a *App) SearchVerse(passages string) (*reference.BibleReference, error) {
 	bibleRef := parser.BiblePassageParser(passages)
 
-	bibleRef.LoadAllText(a.ctx, a.Queries)
+	bibleRef.LoadAllText(a.ctx, a.queries)
 
 	return &bibleRef, nil
 

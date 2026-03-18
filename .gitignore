@@ -67,3 +67,4 @@ coverage/
 
 # SolidStart specific
 .solid-start/
+.opencode/
