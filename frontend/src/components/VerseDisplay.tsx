@@ -7,7 +7,7 @@ interface VerseDisplayProps {
 
 export default function VerseDisplay(props: VerseDisplayProps) {
   return (
-    <Show when={props.verse.FullText.length > 0}>
+    <Show when={!!props.verse.FullText && props.verse.FullText.length > 0} fallback={<></>}>
       <div class="px-4 text-purple-300 mt-4">
         <div class="space-y-4 duration-500 rounded-xl hover:shadow-amber-400 transition-all bg-gray-800">
           <div class="p-6 flex justify-between items-start gap-4">

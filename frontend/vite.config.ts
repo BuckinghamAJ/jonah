@@ -7,4 +7,7 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
+  resolve: {
+      conditions: ["development", "browser"],
+    },
 });

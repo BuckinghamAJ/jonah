@@ -21,7 +21,7 @@ export default function Main() {
     <>
       <VerseOfDay />
       <SearchTheScriptures setPassages={setPassages} />
-      <Show when={verseResults()} fallback={null}>
+      <Show when={verseResults()} fallback={<></>}>
         {(data) => <Verses data={data()} />}
       </Show>
     </>
