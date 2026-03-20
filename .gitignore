@@ -69,3 +69,7 @@ coverage/
 
 # SolidStart specific
 .solid-start/
+
+#SQLITE DUMPS:
+*dump.sql
+data/

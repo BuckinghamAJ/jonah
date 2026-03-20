@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"os"
 
-	drcBible "github.com/BuckinghamAJ/jonah/drcBible/dto"
-	"github.com/BuckinghamAJ/jonah/parser"
-	"github.com/BuckinghamAJ/jonah/reference"
+	"github.com/BuckinghamAJ/jonah/internal/db"
+	drcBible "github.com/BuckinghamAJ/jonah/internal/drcBible/dto"
+	"github.com/BuckinghamAJ/jonah/internal/parser"
+	"github.com/BuckinghamAJ/jonah/internal/reference"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -34,15 +36,11 @@ func (a *App) startup(ctx context.Context) {
 		log.Fatal(err)
 	}
 
-	dbPath := cwd + "/data/DRC.db"
+	dbPath := cwd + "/data/DRC.db" //TODO: Adjust where this gets placed for install.
 
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		log.Fatal("unable to connect to database: ", err)
-	}
-	a.db = db
+	a.db = db.SetupDb(dbPath, true)
 
-	a.queries = drcBible.New(db)
+	a.queries = drcBible.New(a.db)
 
 }
 
@@ -67,6 +65,14 @@ func (a *App) shutdown(ctx context.Context) {
 
 func (a *App) SearchVerse(passages string) (*reference.BibleReference, error) {
 	bibleRef := parser.BiblePassageParser(passages)
+
+	if a.db == nil || a.queries == nil {
+		return nil, errors.New("Database is busy with migrations")
+	}
+
+	if db.IsBusy(a.db) {
+		return nil, errors.New("Database is busy")
+	}
 
 	bibleRef.LoadAllText(a.ctx, a.queries)
 
