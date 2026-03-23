@@ -21,6 +21,7 @@ export namespace reference {
 	    StartVerse: number;
 	    EndVerse: number;
 	    FullText: Verse[];
+	    Error: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new BiblePassage(source);
@@ -34,6 +35,7 @@ export namespace reference {
 	        this.StartVerse = source["StartVerse"];
 	        this.EndVerse = source["EndVerse"];
 	        this.FullText = this.convertValues(source["FullText"], Verse);
+	        this.Error = source["Error"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -56,6 +58,7 @@ export namespace reference {
 	}
 	export class BibleReference {
 	    Passages: BiblePassage[];
+	    Errors: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new BibleReference(source);
@@ -64,6 +67,7 @@ export namespace reference {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Passages = this.convertValues(source["Passages"], BiblePassage);
+	        this.Errors = source["Errors"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

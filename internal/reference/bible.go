@@ -14,6 +14,7 @@ import (
 
 type BibleReference struct {
 	Passages []*BiblePassage
+	Errors   []string
 }
 
 func (br *BibleReference) ToString() string {
@@ -34,6 +35,7 @@ func (br *BibleReference) LoadAllText(ctx context.Context, queries *drcBible.Que
 		go func(p *BiblePassage) {
 			defer wg.Done()
 			p.GetFullText(ctx, queries)
+			br.Errors = append(br.Errors, p.Error)
 		}(br.Passages[i])
 	}
 	wg.Wait()
@@ -47,7 +49,7 @@ type BiblePassage struct {
 	StartVerse uint8
 	EndVerse   uint8
 	FullText   []Verse
-	error
+	Error      string
 }
 
 func (bp *BiblePassage) ToString() string {
@@ -94,7 +96,7 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 
 	if err != nil {
 		log.Println("error in GetFullText:", err)
-		bp.error = err
+		bp.Error = err.Error()
 		return make([]Verse, 0)
 	}
 
@@ -103,7 +105,7 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 		rows, err := queries.GetChapter(ctxWithTimeout, queryParams)
 		if err != nil {
 			log.Println("error in GetFullText:", err)
-			bp.error = err
+			bp.Error = err.Error()
 			return make([]Verse, 0)
 		}
 		bp.FullText = formatRows(rows)
@@ -112,7 +114,7 @@ func (bp *BiblePassage) GetFullText(ctx context.Context, queries *drcBible.Queri
 		rows, err := queries.GetVerses(ctxWithTimeout, queryParams)
 		if err != nil {
 			log.Println("error in GetFullText:", err)
-			bp.error = err
+			bp.Error = err.Error()
 			return make([]Verse, 0)
 		}
 		bp.FullText = formatRows(rows)

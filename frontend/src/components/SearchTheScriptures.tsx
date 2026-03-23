@@ -1,10 +1,11 @@
-import { Setter, createSignal } from "solid-js";
+import { Accessor, For, Setter, Show, createSignal } from "solid-js";
 
 interface StSProps {
   setPassages: Setter<string | null | undefined>;
+  errors: Accessor<string[] | null | undefined>;
 }
 
-export default function SearchTheScriptures({ setPassages }: StSProps) {
+export default function SearchTheScriptures({ setPassages, errors }: StSProps) {
   const [value, setValue] = createSignal("");
 
   return (
@@ -46,6 +47,13 @@ export default function SearchTheScriptures({ setPassages }: StSProps) {
             Search
           </button>
         </div>
+        <Show when={errors()}>
+          {(errors) => (
+            <For each={errors()}>
+              {(error, index) => <div class="text-red-400">{error}</div>}
+            </For>
+          )}
+        </Show>
       </div>
     </div>
   );
