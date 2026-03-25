@@ -6,7 +6,7 @@ import Main from "../layouts/Main";
 
 const Home: Component = () => {
   return (
-    <div class="min-h-screen bg-gray-900 text-white">
+    <div class="min-h-screen bg-slate-900 text-white overflow-y-auto">
       <Navbar />
       <Main />
       <Footer />

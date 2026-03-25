@@ -91,3 +91,22 @@ export namespace reference {
 
 }
 
+export namespace services {
+	
+	export class BookResponse {
+	    name: string;
+	    id: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new BookResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.id = source["id"];
+	    }
+	}
+
+}
+

@@ -10,6 +10,38 @@ import (
 	"database/sql"
 )
 
+const getAllBooks = `-- name: GetAllBooks :many
+SELECT name, id FROM DRC_books
+`
+
+type GetAllBooksRow struct {
+	Name sql.NullString
+	ID   int64
+}
+
+func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllBooks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllBooksRow
+	for rows.Next() {
+		var i GetAllBooksRow
+		if err := rows.Scan(&i.Name, &i.ID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBook = `-- name: GetBook :one
 SELECT id, name FROM DRC_books
 WHERE id = ? LIMIT 1
@@ -75,10 +107,39 @@ func (q *Queries) GetChapter(ctx context.Context, arg GetChapterParams) ([]GetCh
 	return items, nil
 }
 
+const getChaptersOfBook = `-- name: GetChaptersOfBook :many
+SELECT DISTINCT v.chapter FROM DRC_verses as v
+WHERE v.book_id = ?
+ORDER BY v.chapter
+`
+
+func (q *Queries) GetChaptersOfBook(ctx context.Context, bookID sql.NullInt64) ([]sql.NullInt64, error) {
+	rows, err := q.db.QueryContext(ctx, getChaptersOfBook, bookID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []sql.NullInt64
+	for rows.Next() {
+		var chapter sql.NullInt64
+		if err := rows.Scan(&chapter); err != nil {
+			return nil, err
+		}
+		items = append(items, chapter)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVerses = `-- name: GetVerses :many
 SELECT v.chapter, v.verse, v.text FROM DRC_verses as v
 JOIN DRC_books as b ON b.id=v.book_id
-WHERE v.book_id = ? and v.chapter = ? AND v.verse BETWEEN ? and ?
+WHERE v.book_id = ?1 AND v.chapter = ?2 AND v.verse >= ?3 AND v.verse <= ?4
 ORDER BY v.verse
 `
 
@@ -96,7 +157,12 @@ type GetVersesRow struct {
 }
 
 func (q *Queries) GetVerses(ctx context.Context, arg GetVersesParams) ([]GetVersesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getVerses, arg.BookID, arg.Chapter, arg.StartVerse, arg.EndVerse)
+	rows, err := q.db.QueryContext(ctx, getVerses,
+		arg.BookID,
+		arg.Chapter,
+		arg.StartVerse,
+		arg.EndVerse,
+	)
 	if err != nil {
 		return nil, err
 	}
