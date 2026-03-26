@@ -2,7 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,29 +20,73 @@ func doesItExist(path string) bool {
 	return err == nil || !errors.Is(err, os.ErrNotExist)
 }
 
-// Helper to create a SQLite DB if does not exist.
-func createDb(path string) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		log.Fatal(err)
+// extractEmbeddedDb copies the embedded seed database to the target path.
+// It only writes the file if it does not already exist.
+func extractEmbeddedDb(embeddedFS embed.FS, embeddedName string, destPath string) error {
+	if doesItExist(destPath) {
+		return nil
 	}
 
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return fmt.Errorf("create db directory: %w", err)
+	}
 
+	data, err := fs.ReadFile(embeddedFS, embeddedName)
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			log.Println("file already exists")
-			return
-		}
-		log.Fatal(err)
+		return fmt.Errorf("read embedded db: %w", err)
 	}
-	defer f.Close()
 
+	if err := os.WriteFile(destPath, data, 0o644); err != nil {
+		return fmt.Errorf("write db to disk: %w", err)
+	}
+
+	return nil
 }
 
-// Helper to setup SQLite connection
+// AppDbPath returns the path where the app database should live, inside the
+// user's OS config directory (e.g. ~/.config/jonah/DRC.db on Linux/macOS,
+// %AppData%/jonah/DRC.db on Windows).
+func AppDbPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("get user config dir: %w", err)
+	}
+
+	return filepath.Join(configDir, "jonah", "DRC.db"), nil
+}
+
+// SetupEmbeddedDb extracts the embedded seed database to the user's config
+// directory (if it doesn't already exist), opens it, configures pragmas, and
+// optionally runs migrations.
+func SetupEmbeddedDb(embeddedFS embed.FS, embeddedName string, doMigrations bool) *sql.DB {
+	dbPath, err := AppDbPath()
+	if err != nil {
+		log.Fatal("unable to determine db path: ", err)
+	}
+
+	if err := extractEmbeddedDb(embeddedFS, embeddedName, dbPath); err != nil {
+		log.Fatal("unable to extract embedded db: ", err)
+	}
+
+	return SetupDb(dbPath, doMigrations)
+}
+
+// SetupDb opens a SQLite database at the given path, creates it if missing,
+// configures pragmas, and optionally runs migrations.
 func SetupDb(path string, doMigrations bool) *sql.DB {
 	if exists := doesItExist(path); !exists {
-		createDb(path)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			log.Fatal(err)
+		}
+
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err != nil {
+			if !errors.Is(err, os.ErrExist) {
+				log.Fatal(err)
+			}
+		} else {
+			f.Close()
+		}
 	}
 
 	db, err := sql.Open("sqlite3", path)

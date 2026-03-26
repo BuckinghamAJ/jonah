@@ -72,4 +72,6 @@ coverage/
 
 #SQLITE DUMPS:
 *dump.sql
-data/
+data/*
+!data/embed.go
+!data/DRC.db

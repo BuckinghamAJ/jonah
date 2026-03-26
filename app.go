@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"os"
 
+	"github.com/BuckinghamAJ/jonah/data"
 	"github.com/BuckinghamAJ/jonah/internal/db"
 	drcBible "github.com/BuckinghamAJ/jonah/internal/drcBible/dto"
 	"github.com/BuckinghamAJ/jonah/internal/reference"
@@ -30,14 +30,7 @@ func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
 	a.ctx = ctx
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dbPath := cwd + "/data/DRC.db" //TODO: Adjust where this gets placed for install.
-
-	a.database = db.SetupDb(dbPath, true)
+	a.database = db.SetupEmbeddedDb(data.DRCDatabase, "DRC.db", true)
 
 	a.bibleService = services.NewBibleService(
 		a.database,
