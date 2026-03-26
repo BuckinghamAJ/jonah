@@ -25,10 +25,10 @@ jobs:
             os: macos-latest
             platform: darwin/universal
             artifact: Jonah-macos-universal
-          - name: windows-amd64
-            os: windows-latest
-            platform: windows/amd64
-            artifact: Jonah-windows-amd64
+          # - name: windows-amd64
+          #   os: windows-latest
+          #   platform: windows/amd64
+          #   artifact: Jonah-windows-amd64
 
     steps:
       - name: Checkout
