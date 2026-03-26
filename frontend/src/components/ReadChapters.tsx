@@ -1,5 +1,5 @@
-import { createAsync } from "@solidjs/router";
-import { For, Show, createSignal } from "solid-js";
+import { createAsync, reload } from "@solidjs/router";
+import { For, Setter, Show, createSignal } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { getAllBooks, getBookChapters } from "../lib/bibleQueries";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./solid-ui/DropdownMenu";
 import { createEffect } from "solid-js";
+import { Accessor } from "solid-js/types/server/reactive.js";
 
 export default function ReadChapters() {
   const books = createAsync(() => getAllBooks());
@@ -16,8 +17,6 @@ export default function ReadChapters() {
   const [selectedChapter, setSelectedChapter] = createSignal<number | null>(
     null,
   );
-
-  const navigate = useNavigate();
 
   const chapters = createAsync(() => {
     const bookId = selectedBookId();
@@ -39,8 +38,8 @@ export default function ReadChapters() {
       <DropdownMenuTrigger
         class="inline-flex items-center justify-center
             gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-amber-50 hover:text-purple-400 hover:cursor-pointer
-            hover:bg-accent hover:text-accent-foreground h-10 w-10 absolute right-4"
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:text-purple-400 hover:cursor-pointer
+           h-10 w-10 absolute right-4"
         type="button"
         aria-label="Read chapters"
       >
@@ -62,55 +61,100 @@ export default function ReadChapters() {
         </svg>
       </DropdownMenuTrigger>
       <DropdownMenuContent class="w-56 mt-6 max-h-96 h-fit overflow-auto absolute z-50 bg-slate-800">
-        <Show
-          when={books() !== undefined}
-          fallback={
-            <DropdownMenuItem disabled>Loading books...</DropdownMenuItem>
-          }
-        >
-          <Show when={(books() ?? []).length > 0 && selectedBookId() === null}>
-            <For each={books() ?? []}>
-              {(book) => (
-                <DropdownMenuItem
-                  class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600"
-                  closeOnSelect={false}
-                  onSelect={() => {
-                    setSelectedBookId(book.id);
-                  }}
-                >
-                  {book.name}
-                </DropdownMenuItem>
-              )}
-            </For>
-          </Show>
-        </Show>
+        <BookDisplay
+          books={books}
+          selectedBookId={selectedBookId}
+          setSelectedBookId={setSelectedBookId}
+        />
 
-        <Show when={selectedBookId() !== null}>
-          {/* Back to Book Selections*/}
+        <ChapterDisplay
+          chapters={chapters}
+          selectedBookId={selectedBookId}
+          setSelectedBookId={setSelectedBookId}
+        />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+interface BookDisplayProps {
+  books: Accessor<{ id: number; name: string }[] | null | undefined>;
+  selectedBookId: Accessor<number | null>;
+  setSelectedBookId: Setter<number | null>;
+}
+
+function BookDisplay({
+  books,
+  selectedBookId,
+  setSelectedBookId,
+}: BookDisplayProps) {
+  return (
+    <Show
+      when={books() !== undefined}
+      fallback={<DropdownMenuItem disabled>Loading books...</DropdownMenuItem>}
+    >
+      <Show when={(books() ?? []).length > 0 && selectedBookId() === null}>
+        <For each={books() ?? []}>
+          {(book) => (
+            <DropdownMenuItem
+              class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600"
+              closeOnSelect={false}
+              onSelect={() => {
+                setSelectedBookId(book.id);
+              }}
+            >
+              {book.name}
+            </DropdownMenuItem>
+          )}
+        </For>
+      </Show>
+    </Show>
+  );
+}
+
+interface ChapterDisplayProps {
+  chapters: Accessor<number[] | null | undefined>;
+  selectedBookId: Accessor<number | null>;
+  setSelectedBookId: Setter<number | null>;
+}
+
+function ChapterDisplay({
+  chapters,
+  selectedBookId,
+  setSelectedBookId,
+}: ChapterDisplayProps) {
+  const navigate = useNavigate();
+
+  const chapterNav = (path: string) => {
+    navigate(path, { replace: true });
+    reload();
+  };
+
+  return (
+    <Show when={selectedBookId() !== null}>
+      {/* Back to Book Selections*/}
+      <DropdownMenuItem
+        class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600 sticky top-0 bg-slate-800 z-10"
+        closeOnSelect={false}
+        onSelect={() => {
+          setSelectedBookId(null);
+        }}
+      >
+        &larr; Back to Books
+      </DropdownMenuItem>
+      <For each={chapters() ?? []}>
+        {(chapter) => (
           <DropdownMenuItem
-            class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600 sticky top-0 bg-slate-800 z-10"
-            closeOnSelect={false}
+            class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600"
             onSelect={() => {
+              chapterNav(`/read/${selectedBookId()}/${chapter}`);
               setSelectedBookId(null);
             }}
           >
-            &larr; Back to Books
+            Chapter {chapter}
           </DropdownMenuItem>
-          <For each={chapters() ?? []}>
-            {(chapter) => (
-              <DropdownMenuItem
-                class="hover:border-l-2 hover:bg-amber-100 hover:text-purple-600"
-                onSelect={() => {
-                  // TODO: navigate to chapter;
-                  setSelectedChapter(chapter);
-                }}
-              >
-                Chapter {chapter}
-              </DropdownMenuItem>
-            )}
-          </For>
-        </Show>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        )}
+      </For>
+    </Show>
   );
 }

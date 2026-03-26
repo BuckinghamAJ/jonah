@@ -7,4 +7,6 @@ export function GetAllBooks():Promise<Array<services.BookResponse>>;
 
 export function GetAllChapters(arg1:number):Promise<Array<number>>;
 
+export function GetAllVerses(arg1:number,arg2:number):Promise<reference.BiblePassage>;
+
 export function SearchVerse(arg1:string):Promise<reference.BibleReference>;

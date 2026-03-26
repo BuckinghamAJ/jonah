@@ -10,6 +10,10 @@ export function GetAllChapters(arg1) {
   return window['go']['main']['App']['GetAllChapters'](arg1);
 }
 
+export function GetAllVerses(arg1, arg2) {
+  return window['go']['main']['App']['GetAllVerses'](arg1, arg2);
+}
+
 export function SearchVerse(arg1) {
   return window['go']['main']['App']['SearchVerse'](arg1);
 }

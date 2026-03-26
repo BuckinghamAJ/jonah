@@ -67,7 +67,7 @@ func (q *Queries) GetBookFromTitle(ctx context.Context, name sql.NullString) (Dr
 }
 
 const getChapter = `-- name: GetChapter :many
-SELECT v.chapter, v.verse, v.text FROM DRC_verses as v
+SELECT v.chapter, v.verse, v.text, b.name FROM DRC_verses as v
 JOIN DRC_books as b ON b.id=v.book_id
 WHERE v.book_id = ? and v.chapter = ?
 ORDER BY v.verse
@@ -82,6 +82,7 @@ type GetChapterRow struct {
 	Chapter sql.NullInt64
 	Verse   sql.NullInt64
 	Text    sql.NullString
+	Name    sql.NullString
 }
 
 func (q *Queries) GetChapter(ctx context.Context, arg GetChapterParams) ([]GetChapterRow, error) {
@@ -93,7 +94,12 @@ func (q *Queries) GetChapter(ctx context.Context, arg GetChapterParams) ([]GetCh
 	var items []GetChapterRow
 	for rows.Next() {
 		var i GetChapterRow
-		if err := rows.Scan(&i.Chapter, &i.Verse, &i.Text); err != nil {
+		if err := rows.Scan(
+			&i.Chapter,
+			&i.Verse,
+			&i.Text,
+			&i.Name,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

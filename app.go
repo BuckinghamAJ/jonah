@@ -76,3 +76,7 @@ func (a *App) GetAllBooks() ([]services.BookResponse, error) {
 func (a *App) GetAllChapters(book int64) ([]int64, error) {
 	return a.bibleService.GetAllChapters(a.ctx, book)
 }
+
+func (a *App) GetAllVerses(book int, chapter int) (*reference.BiblePassage, error) {
+	return a.bibleService.GetAllVerses(a.ctx, book, chapter)
+}

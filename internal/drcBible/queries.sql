@@ -13,7 +13,7 @@ WHERE v.book_id = sqlc.arg(book_id) AND v.chapter = sqlc.arg(chapter) AND v.vers
 ORDER BY v.verse;
 
 -- name: GetChapter :many
-SELECT v.chapter, v.verse, v.text FROM DRC_verses as v
+SELECT v.chapter, v.verse, v.text, b.name FROM DRC_verses as v
 JOIN DRC_books as b ON b.id=v.book_id
 WHERE v.book_id = ? and v.chapter = ?
 ORDER BY v.verse;

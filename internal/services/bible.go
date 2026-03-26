@@ -97,3 +97,33 @@ func (s *BibleService) GetAllChapters(ctx context.Context, book int64) ([]int64,
 
 	return chapterNumbers, nil
 }
+
+func (s *BibleService) GetAllVerses(ctx context.Context, book int, chapter int) (*reference.BiblePassage, error) {
+
+	if err := s.ensureReady(); err != nil {
+		return nil, err
+	}
+
+	verses, err := s.queries.GetChapter(ctx, drcBible.MakeChapterParams(book, uint8(chapter)))
+	if err != nil {
+		return nil, err
+	}
+
+	result := &reference.BiblePassage{
+		FullText: make([]reference.Verse, 0, len(verses)),
+	}
+
+	result.Chapter = uint8(chapter)
+
+	for _, verse := range verses {
+		if verse.Verse.Valid && verse.Text.Valid {
+			result.Book = verse.Name.String
+			result.FullText = append(result.FullText, reference.Verse{
+				Number: verse.Verse.Int64,
+				Text:   verse.Text.String,
+			})
+		}
+	}
+
+	return result, nil
+}
